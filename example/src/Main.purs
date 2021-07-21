@@ -8,7 +8,7 @@ import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
 import Web.DOM.ParentNode (QuerySelector(..))
 
-import Editor.Container as Container
+import Tunebook.Container as Container
 
 main :: Effect Unit
 main = HA.runHalogenAff do

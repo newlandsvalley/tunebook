@@ -1,4 +1,4 @@
-module Editor.Container where
+module Tunebook.Container where
 
 import Prelude
 
@@ -14,7 +14,7 @@ import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.String (length)
 import Data.Traversable (traverse)
-import Editor.Window (print)
+import Tunebook.Window (print)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H

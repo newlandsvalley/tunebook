@@ -6,4 +6,4 @@
 /.purs*
 /.psa*
 /.spago/
-/dist/tunebook.js
+/example/dist/tunebook.js

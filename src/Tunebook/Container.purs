@@ -25,7 +25,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
 import VexFlow.Abc.Alignment (justifiedScoreConfig, rightJustify)
-import VexFlow.Score (Renderer, clearCanvas, createScore, renderScore, initialiseCanvas, resizeCanvas) as Score
+import VexFlow.Score (Renderer, clearCanvas, createScore, renderTitledScore, initialiseCanvas, resizeCanvas) as Score
 import VexFlow.Types (Config)
 import Web.Event.Event as Event
 import Web.File.File as File
@@ -77,6 +77,7 @@ vexConfig index =
   , height : 10
   , scale : scale
   , isSVG : true
+  , titled : true
   }
 
 type ChildSlots :: ∀ k. Row k
@@ -169,7 +170,7 @@ component =
         [ renderPrintButton state ]
       , HH.div_
         [ HH.ul_ $
-          renderScores state
+          renderScores
         ]
       ]
     ]      
@@ -221,33 +222,23 @@ renderPrintButton state =
 
 renderScores :: ∀ m
   . MonadAff m
-  => State -> 
-  Array (H.ComponentHTML Action ChildSlots m)
-renderScores state =
+  => Array (H.ComponentHTML Action ChildSlots m)
+renderScores =
   let
     rows = range 0 (maxScores -1)
   in
-    map (renderScoreItem state) rows
+    map renderScoreItem rows
 
-renderScoreItem :: ∀ i p. State -> Int -> HH.HTML i p
-renderScoreItem state idx =
-  let 
-    mTitle :: Maybe String
-    mTitle = index state.titles idx
-    title = maybe "" identity mTitle
-  in
-    HH.li
-      [ HP.class_ (H.ClassName "scoreItem") ]
-      [ HH.div
-        []
-        [ renderTuneTitle title idx ]
-      , HH.div
-        [ HP.id ("vexflow" <> show idx)
-        , HP.class_ (H.ClassName "canvasDiv")
-        ]
-        []
-      ]      
-
+renderScoreItem :: ∀ i p. Int -> HH.HTML i p
+renderScoreItem idx =
+  HH.li
+    [ HP.class_ (H.ClassName "scoreItem") ]
+    [ HH.div
+      [ HP.id ("vexflow" <> show idx)
+      , HP.class_ (H.ClassName "canvasDiv")
+      ]
+      []
+    ]      
 
 renderTuneTitle :: ∀ i p. String -> Int -> HH.HTML i p
 renderTuneTitle title idx = 
@@ -281,8 +272,9 @@ handleFileUpload state input = do
           -- right justify the score
           justifiedScore = rightJustify canvasWidth scale vexScore 
           config = justifiedScoreConfig justifiedScore (vexConfig n) 
+          title = maybe "Untitled" identity $ getTitle abcTune 
         _ <- H.liftEffect $ Score.resizeCanvas renderer config
-        _ <- H.liftEffect $ Score.renderScore renderer justifiedScore
+        _ <- H.liftEffect $ Score.renderTitledScore renderer title justifiedScore
         pure unit
 
 handleRetrieveTitles :: ∀ m. MonadAff m  => HTMLInputElement -> m (Array String)

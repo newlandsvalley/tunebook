@@ -19,7 +19,6 @@ You can edit this file as you like.
   , "maybe"
   , "partial"
   , "prelude"
-  , "strings"
   , "web-events"
   , "web-file"
   , "web-html"

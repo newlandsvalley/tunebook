@@ -12,7 +12,6 @@ import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.String (length)
 import Data.Traversable (traverse)
 import Tunebook.Window (print)
 import Effect (Effect)
@@ -24,8 +23,7 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
-import VexFlow.Abc.Alignment (justifiedScoreConfig, rightJustify)
-import VexFlow.Score (Renderer, clearCanvas, createScore, renderTitledScore, initialiseCanvas, resizeCanvas) as Score
+import VexFlow.Score (Renderer, clearCanvas, renderFinalTune, initialiseCanvas, resizeCanvas) as Score
 import VexFlow.Types (Config)
 import Web.Event.Event as Event
 import Web.File.File as File
@@ -35,7 +33,7 @@ import Web.HTML.HTMLInputElement (HTMLInputElement)
 import Web.HTML.HTMLInputElement as HTMLInputElement
 
 type State =
-  { titles :: Array String
+  { titles :: Array String                -- not used at the moment - we now have them in the score
   , vexRenderers :: Array Score.Renderer
   , vexRendered :: Boolean
   }
@@ -46,7 +44,7 @@ data Action =
   | HandlePrint
 
 -- the only reason that we need Query at all is that we need to chain
--- InitDummy followed by InitVex and this is only possible with Queries.
+-- InitQuery followed by InitVex and this is only possible with Queries.
 -- Otherwise everything would be encoded as an Action.
 -- And the reason for this is that Vex requires a Div element to me rendered
 -- before it can be initialised.
@@ -116,10 +114,13 @@ component =
         Just target -> do
           state <- H.get
           _ <- clearScores state
+          -- we get the titles but we don't need to 
+          -- leave this in place in case we decide to garner other tune attributes
           titles <- handleRetrieveTitles target 
           _ <- H.modify (\st -> st { titles = titles
                                     , vexRendered = true  
                                     })
+          -- but this is the meat of getting all the scores
           _ <- (handleFileUpload state) target 
           pure unit
         Nothing ->
@@ -224,10 +225,7 @@ renderScores :: ∀ m
   . MonadAff m
   => Array (H.ComponentHTML Action ChildSlots m)
 renderScores =
-  let
-    rows = range 0 (maxScores -1)
-  in
-    map renderScoreItem rows
+  map renderScoreItem $ range 0 (maxScores -1)
 
 renderScoreItem :: ∀ i p. Int -> HH.HTML i p
 renderScoreItem idx =
@@ -240,23 +238,13 @@ renderScoreItem idx =
       []
     ]      
 
-renderTuneTitle :: ∀ i p. String -> Int -> HH.HTML i p
-renderTuneTitle title idx = 
-  if (length title > 0) then
-    HH.label 
-      [ HP.for ("vexflow" <> show idx) ]
-      [ HH.h2
-        [HP.id "tune-title" ]
-        [HH.text (show (idx + 1) <> ". " <> title) ]
-      ]
-  else
-    HH.text ""
-
 noDisplayStyle :: ∀ j r. HP.IProp (style :: String | r) j
 noDisplayStyle =
   style do
     display displayNone
 
+-- | process all the chosen files and, wherever possible, convert tha ABC 
+-- | to a final score and write to the appropriate canvas Div (by side effect)
 handleFileUpload :: ∀ m. MonadAff m  => State -> HTMLInputElement -> m Unit
 handleFileUpload state input = do
   mFileList <- H.liftEffect $ HTMLInputElement.files input
@@ -268,15 +256,10 @@ handleFileUpload state input = do
           renderer = unsafePartial $ fromJust $ index state.vexRenderers n
           eTune = parse (abc <> "\n")
           abcTune = either (\_ -> emptyTune) (identity) eTune
-          vexScore = Score.createScore (vexConfig n) abcTune
-          -- right justify the score
-          justifiedScore = rightJustify canvasWidth scale vexScore 
-          config = justifiedScoreConfig justifiedScore (vexConfig n) 
-          title = maybe "Untitled" identity $ getTitle abcTune 
-        _ <- H.liftEffect $ Score.resizeCanvas renderer config
-        _ <- H.liftEffect $ Score.renderTitledScore renderer title justifiedScore
+        _ <- H.liftEffect $ Score.renderFinalTune (vexConfig n) renderer abcTune
         pure unit
 
+-- Not really needed.  Process all the files and retrieve the tune titles
 handleRetrieveTitles :: ∀ m. MonadAff m  => HTMLInputElement -> m (Array String)
 handleRetrieveTitles input = do
   mFileList <- H.liftEffect $ HTMLInputElement.files input 
@@ -300,8 +283,6 @@ handleRetrieveTitles input = do
         mTitle = either (const Nothing) getTitle eTune
         title = maybe "" identity mTitle
       pure title   
-
-
 
 clearScores :: ∀ m. MonadAff m  => State -> m Unit
 clearScores state = do

@@ -5,17 +5,21 @@ import Prelude
 import CSS.Display (display, displayNone)
 import Data.Abc (AbcTune)
 import Data.Abc.Metadata (getTitle)
+import Data.Abc.Optics (_headers, _Title)
 import Data.Abc.Parser (parse)
-import Data.Array (index, range, replicate)
-import Data.Either (either)
+import Data.Abc.Voice (partitionVoices)
+import Data.Array (foldM, index, range)
+import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
+import Data.Lens.Traversal (traversed)
+import Data.Lens.Setter (over)
 import Data.List (List(..))
-import Data.Maybe (Maybe(..), fromJust, maybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.Traversable (traverse)
-import Tunebook.Window (print)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
@@ -23,6 +27,7 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
+import Tunebook.Window (print)
 import VexFlow.Score (Renderer, clearCanvas, renderFinalTune, initialiseCanvas, resizeCanvas) as Score
 import VexFlow.Types (Config)
 import Web.Event.Event as Event
@@ -33,8 +38,7 @@ import Web.HTML.HTMLInputElement (HTMLInputElement)
 import Web.HTML.HTMLInputElement as HTMLInputElement
 
 type State =
-  { titles :: Array String                -- not used at the moment - we now have them in the score
-  , vexRenderers :: Array Score.Renderer
+  { vexRenderers :: Array Score.Renderer
   , vexRendered :: Boolean
   }
 
@@ -97,8 +101,7 @@ component =
 
   initialState :: i -> State
   initialState _ =
-    { titles: []
-    , vexRenderers: []
+    { vexRenderers: []
     , vexRendered: false
     }
  
@@ -114,12 +117,7 @@ component =
         Just target -> do
           state <- H.get
           _ <- clearScores state
-          -- we get the titles but we don't need to 
-          -- leave this in place in case we decide to garner other tune attributes
-          titles <- handleRetrieveTitles target 
-          _ <- H.modify (\st -> st { titles = titles
-                                    , vexRendered = true  
-                                    })
+          _ <- H.modify (\st -> st { vexRendered = true })
           -- but this is the meat of getting all the scores
           _ <- (handleFileUpload state) target 
           pure unit
@@ -133,9 +131,7 @@ component =
   handleQuery = case _ of
     InitQuery next -> do
       -- this state change forces our first render
-      let 
-        titles = replicate maxScores ""
-      _ <- H.modify (\st -> st { titles = titles } )
+      _ <- H.modify (\st -> st { vexRendered = false } )
       handleQuery (InitVex next)
     InitVex next -> do
       -- we split initialisation into two because Vex requires a rendering step
@@ -248,41 +244,14 @@ noDisplayStyle =
 handleFileUpload :: ∀ m. MonadAff m  => State -> HTMLInputElement -> m Unit
 handleFileUpload state input = do
   mFileList <- H.liftEffect $ HTMLInputElement.files input
-  for_ mFileList \fileList -> 
-    forWithIndex_ (toFileArray fileList) \n file -> 
+  for_ mFileList \fileList -> do 
+    tunes <- collectTunes fileList 
+    forWithIndex_ tunes \n tune -> 
       when (n < maxScores) do
-        abc <- H.liftAff $ FileReaderAff.readAsText (File.toBlob file)
         let
           renderer = unsafePartial $ fromJust $ index state.vexRenderers n
-          eTune = parse (abc <> "\n")
-          abcTune = either (\_ -> emptyTune) (identity) eTune
-        _ <- H.liftEffect $ Score.renderFinalTune (vexConfig n) renderer abcTune
+        _ <- H.liftEffect $ Score.renderFinalTune (vexConfig n) renderer tune
         pure unit
-
--- Not really needed.  Process all the files and retrieve the tune titles
-handleRetrieveTitles :: ∀ m. MonadAff m  => HTMLInputElement -> m (Array String)
-handleRetrieveTitles input = do
-  mFileList <- H.liftEffect $ HTMLInputElement.files input 
-  case mFileList of 
-    Just fileList ->
-      let 
-        files = (toFileArray fileList)
-      in do 
-        titles <- traverse getFileTitle files
-        pure titles
-    Nothing ->
-      pure []
-
-  where
-
-    getFileTitle :: MonadAff m  => File.File -> m String 
-    getFileTitle file = do
-      abc <- H.liftAff $ FileReaderAff.readAsText (File.toBlob file)
-      let
-        eTune = parse (abc <> "\n")
-        mTitle = either (const Nothing) getTitle eTune
-        title = maybe "" identity mTitle
-      pure title   
 
 clearScores :: ∀ m. MonadAff m  => State -> m Unit
 clearScores state = do
@@ -297,6 +266,39 @@ clearScores state = do
 toFileArray :: FileList.FileList -> Array File.File
 toFileArray fileList = 
   FileList.items fileList
+
+-- collect all the tunes that parse, splitting any polyphonic tune 
+-- into separate tunes for each voice
+collectTunes :: ∀ m. MonadAff m => FileList.FileList -> m (Array AbcTune)
+collectTunes fileList = 
+  liftAff $ foldM f [] fileArray
+
+  where 
+
+    f :: Array AbcTune -> File.File -> Aff (Array AbcTune)
+    f acc file = do
+      abc <- FileReaderAff.readAsText (File.toBlob file) 
+      let
+        eTune = parse (abc <> "\n")
+      case eTune of 
+        Left _ -> 
+          pure acc
+        Right tune -> 
+          pure ((establishVoices tune) <> acc) 
+
+    fileArray :: Array File.File
+    fileArray = FileList.items fileList
+
+-- get all the voices represented as full tunes, but with a title that adds the voice label
+establishVoices :: AbcTune -> Array AbcTune 
+establishVoices tune = 
+  map amendTitle (partitionVoices tune)
+  where 
+    title = fromMaybe "untitled" $ getTitle tune 
+    amendTitle :: AbcTune -> AbcTune
+    amendTitle = over (_headers <<< traversed <<< _Title) (\t -> title <> ": " <> t) 
+    
+      
 
 
 

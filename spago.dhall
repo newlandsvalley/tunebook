@@ -19,6 +19,7 @@ You can edit this file as you like.
   , "maybe"
   , "partial"
   , "prelude"
+  , "profunctor-lenses"
   , "web-events"
   , "web-file"
   , "web-html"

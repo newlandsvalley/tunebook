@@ -15,7 +15,7 @@ import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
 import Data.Lens.Traversal (traversed)
 import Data.Lens.Setter (over)
 import Data.List (List(..))
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Aff (Aff)
@@ -38,7 +38,8 @@ import Web.HTML.HTMLInputElement (HTMLInputElement)
 import Web.HTML.HTMLInputElement as HTMLInputElement
 
 type State =
-  { vexRenderers :: Array Score.Renderer
+  { title :: Maybe String
+  , vexRenderers :: Array Score.Renderer
   , vexRendered :: Boolean
   }
 
@@ -46,6 +47,7 @@ data Action =
     Init
   | HandleUploadFiles Event.Event
   | HandlePrint
+  | HandleTitleInput String
 
 -- the only reason that we need Query at all is that we need to chain
 -- InitQuery followed by InitVex and this is only possible with Queries.
@@ -101,7 +103,8 @@ component =
 
   initialState :: i -> State
   initialState _ =
-    { vexRenderers: []
+    { title : Nothing
+    , vexRenderers: []
     , vexRendered: false
     }
  
@@ -118,13 +121,16 @@ component =
           state <- H.get
           _ <- clearScores state
           _ <- H.modify (\st -> st { vexRendered = true })
-          -- but this is the meat of getting all the scores
+          -- this is the meat of getting all the scores
           _ <- (handleFileUpload state) target 
           pure unit
         Nothing ->
           pure unit
     HandlePrint -> do
       _ <-  H.liftEffect print
+      pure unit
+    HandleTitleInput title -> do
+      _ <- H.modify (\st -> st { title = Just title })
       pure unit
 
   handleQuery :: ∀ a. Query a -> H.HalogenM State Action ChildSlots o m (Maybe a)
@@ -156,21 +162,67 @@ component =
     , HH.div
       -- left pane
       [ HP.class_ (H.ClassName "leftPane") ]
-      [
+      [       
         -- load
         HH.div
          [ HP.class_ (H.ClassName "leftPanelComponent")  ]
          [ renderInputDir ]
       , HH.div
+         [ HP.class_ (H.ClassName "leftPanelComponent")  ]
+         [ renderBookTitleInput state ]
+      , HH.div
         -- print
         [ HP.class_ (H.ClassName "leftPanelComponent")]
         [ renderPrintButton state ]
       , HH.div_
-        [ HH.ul_ $
-          renderScores
+        [ 
+          renderBookTitle state
+        , HH.ul_ renderScores
         ]
       ]
     ]      
+
+-- rendering functions
+renderBookTitle :: ∀ m
+  . MonadAff m
+  => State
+  -> H.ComponentHTML Action ChildSlots m    
+renderBookTitle state = 
+  case state.title of 
+    Just title ->
+      if state.vexRendered then
+        HH.h2
+            [HP.id "book-title" ]
+            [HH.text title]
+      else 
+        HH.text ""  
+    _ ->
+      HH.text ""
+
+
+renderBookTitleInput :: ∀ m
+  . MonadAff m
+  => State
+  -> H.ComponentHTML Action ChildSlots m    
+renderBookTitleInput state =
+  if state.vexRendered then
+    HH.div
+      [ HP.id "book-title-div" ]
+      [ HH.label
+        [ HP.class_ (H.ClassName "labelAlignment")
+        , HP.for "book-title-edit"
+        ]
+        [ HH.text "add a title?" ]
+      , HH.input
+        [ HE.onValueInput HandleTitleInput
+        , HP.value (maybe "" identity state.title)
+        , HP.type_ HP.InputText
+        , HP.id  "book-title-edit"
+        , HP.class_ $ ClassName "text-input"
+        ]
+      ]       
+  else 
+    HH.text ""
 
 renderInputDir :: ∀ m
   . MonadAff m
@@ -196,7 +248,6 @@ renderInputDir =
         ]
     ]            
 
--- rendering functions
 renderPrintButton :: ∀ m
   . MonadAff m
   => State

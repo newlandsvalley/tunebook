@@ -8,5 +8,14 @@
   .scoreItem {
     left: 0;
     list-style-type: none;
+    padding-bottom: 20px;
+  }
+  #book-title {
+    visibility: visible;
+    width: 800px;
+    text-align: center;
+    margin: 12px 0px 0px 0px;
+    padding-bottom: 50px;
+    font-size: 2.0em;
   }
 }

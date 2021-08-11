@@ -2,7 +2,6 @@ body {
   padding: 0 40px 0 40px;
 }
 
-.longLabel,
 label {
   display: block;
   color: #444;
@@ -45,10 +44,18 @@ label {
   font-size: 1.5em;
 }
 
-#tune-title {
-  width: 800px;
-  text-align: center;
-  margin: 12px 0px 0px 0px;
+.labelAlignment {
+  /* align labels at the LHS of a frame */
+  display: inline-block;
+  width: 200px;
+  font-size: 1.3em;
+}
+
+.text-input {
+  margin: 10px 2px 0 20px;
+  font-size: 1.3em;
+  font-family: "Times New Roman", monospace;
+  background-color: Beige;
 }
 
 .fileInputLabel {
@@ -59,15 +66,8 @@ label {
   display: inline-block;
 }
 
-.labelAlignment {
-  /* align labels at the LHS of a frame */
-  display: inline-block;
-  width: 175px;
-  font-size: 1.1em;
-}
-
 .leftPane {
-  width: 420px;
+  width: 800px;
   float: left;
 }
 
@@ -84,4 +84,15 @@ label {
 
 .scoreItem {
   list-style-type: none;
+}
+
+#book-title {
+  width: 800px;
+  text-align: center;
+  margin: 12px 0px 0px 0px;
+  font-size: 2.0em;
+}
+
+#book-title-edit {
+  width: 300px;
 }

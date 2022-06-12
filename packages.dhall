@@ -105,60 +105,98 @@ in  upstream
 -------------------------------
 -}
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.14.2-20210713/packages.dhall sha256:654c3148cb995f642c73b4508d987d9896e2ad3ea1d325a1e826c034c0d3cd7b
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.0-20220527/packages.dhall
+        sha256:15dd8041480502850e4043ea2977ed22d6ab3fc24d565211acde6f8c5152a799
 
 in  upstream
   with abc-parser =
     { dependencies =
-      [ "bifunctors"
+      [ "arrays"
+      , "bifunctors"
+      , "control"
+      , "either"
+      , "enums"
+      , "foldable-traversable"
+      , "identity"
+      , "integers"
+      , "lists"
+      , "maybe"
+      , "midi"
+      , "newtype"
+      , "ordered-collections"
+      , "partial"
+      , "prelude"
+      , "profunctor-lenses"
+      , "rationals"
+      , "string-parsers"
+      , "strings"
+      , "stringutils"
+      , "transformers"
+      , "tuples"
+      , "unfoldable"
+      ]
+    , repo = "https://github.com/newlandsvalley/purescript-abc-parser.git"
+    , version = "ps015"
+    }
+  with abc-scores =
+    { dependencies =  
+      [ "abc-parser"
+      , "arrays"
+      , "console"
       , "effect"
       , "either"
       , "foldable-traversable"
+      , "integers"
+      , "lists"
       , "maybe"
-      , "midi"
+      , "newtype"
       , "ordered-collections"
+      , "prelude"
       , "profunctor-lenses"
       , "rationals"
       , "strings"
       , "stringutils"
-      , "string-parsers"
       , "transformers"
       , "tuples"
+      , "unfoldable"
       ]
-    , repo = "https://github.com/newlandsvalley/purescript-abc-parser.git"
-    , version = "ps014"
-    }
-  with abc-scores =
-    { dependencies = [ "abc-parser", "console", "effect", "prelude" ]
     , repo = "https://github.com/newlandsvalley/purescript-abc-scores.git"
-    , version = "ps014"
+    , version = "ps015"
     }
   with halogen-components =
     { dependencies =
-      [ "console"
+      [ "aff"
+      , "arrays"
       , "css"
+      , "datetime"
+      , "dom-indexed"
       , "effect"
-      , "js-fileio"
       , "halogen"
       , "halogen-css"
+      , "integers"
+      , "js-fileio"
+      , "lists"
+      , "maybe"
+      , "nonempty"
+      , "prelude"
       , "soundfonts"
+      , "transformers"
+      , "web-dom"
+      , "web-html"
+      , "web-uievents"
       ]
     , repo =
         "https://github.com/newlandsvalley/purescript-halogen-components.git"
-    , version = "ps014"
+    , version = "ps015"
     }
-  with web-file-directory-entries =
+  with dom-filereader =
     { dependencies =
-      [ "prelude"
-      , "aff"
-      , "aff-promise"
-      , "either"
-      , "functions"
-      , "effect"
-      , "web-file"
+      [ "aff"
+      , "arraybuffer-types"
       , "web-html"
+      , "web-file"
       ]
     , repo =
-        "https://github.com/newlandsvalley/purescript-web-file-directory-entries.git"
-    , version = "ps014"
+        "https://github.com/nwolverson/purescript-dom-filereader.git"
+    , version = "v7.0.0"
     }

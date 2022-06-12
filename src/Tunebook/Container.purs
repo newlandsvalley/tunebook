@@ -7,8 +7,8 @@ import Data.Abc (AbcTune)
 import Data.Abc.Metadata (getTitle)
 import Data.Abc.Optics (_headers, _Title)
 import Data.Abc.Parser (parse)
-import Data.Abc.Voice (partitionVoices)
-import Data.Array (foldM, index, range)
+import Data.Abc.Voice (getVoiceLabels, partitionVoices)
+import Data.Array (foldM, index, null, range)
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
@@ -82,6 +82,7 @@ vexConfig index =
   , scale: scale
   , isSVG: true
   , titled: true
+  , showChordSymbols: false
   }
 
 type ChildSlots :: ∀ k. Row k
@@ -337,7 +338,12 @@ collectTunes fileList =
       Left _ ->
         pure acc
       Right tune ->
-        pure ((establishVoices tune) <> acc)
+        -- monophonic
+        if null (getVoiceLabels tune) then
+          pure ([tune] <> acc)
+        -- polyphonic
+        else
+          pure ((establishVoices tune) <> acc)
 
   fileArray :: Array File.File
   fileArray = FileList.items fileList

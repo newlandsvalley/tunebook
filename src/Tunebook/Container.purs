@@ -8,12 +8,12 @@ import Data.Abc.Metadata (getTitle)
 import Data.Abc.Optics (_headers, _Title)
 import Data.Abc.Parser (parse)
 import Data.Abc.Voice (getVoiceLabels, partitionVoices)
-import Data.Array (foldM, index, null, range)
+import Data.Array (foldM, index, null, range, sortBy)
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
-import Data.Lens.Traversal (traversed)
 import Data.Lens.Setter (over)
+import Data.Lens.Traversal (traversed)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Traversable (traverse)
@@ -300,7 +300,7 @@ handleFileUpload state input = do
   mFileList <- H.liftEffect $ HTMLInputElement.files input
   for_ mFileList \fileList -> do
     tunes <- collectTunes fileList
-    forWithIndex_ tunes \n tune ->
+    forWithIndex_ (sortTunes tunes) \n tune ->
       when (n < maxScores) do
         let
           renderer = unsafePartial $ fromJust $ index state.vexRenderers n
@@ -357,3 +357,12 @@ establishVoices tune =
   amendTitle :: AbcTune -> AbcTune
   amendTitle = over (_headers <<< traversed <<< _Title) (\t -> title <> ": " <> t)
 
+-- sort the tunes by title
+sortTunes :: Array AbcTune -> Array AbcTune
+sortTunes tunes = 
+  sortBy compareTitles tunes 
+
+  where 
+  compareTitles :: AbcTune -> AbcTune -> Ordering 
+  compareTitles a b = 
+    compare (getTitle a) (getTitle b)

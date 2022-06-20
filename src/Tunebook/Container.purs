@@ -63,12 +63,15 @@ data Query a
 maxScores :: Int
 maxScores = 50
 
-scale :: Number
-scale = 0.8
+defaultScale :: Number
+defaultScale = 0.8
+
+reducedScale :: Number
+reducedScale = 0.6
 
 canvasWidth :: Int
 canvasWidth =
-  1300
+  1000
 
 emptyTune :: AbcTune
 emptyTune =
@@ -79,11 +82,14 @@ vexConfig index =
   { parentElementId: ("vexflow" <> show index)
   , width: canvasWidth
   , height: 10
-  , scale: scale
+  , scale: defaultScale
   , isSVG: true
   , titled: true
   , showChordSymbols: false
   }
+
+convasWidthExceded :: String 
+convasWidthExceded = "Canvas width exceded"
 
 type ChildSlots :: ∀ k. Row k
 type ChildSlots = ()
@@ -302,10 +308,21 @@ handleFileUpload state input = do
     tunes <- collectTunes fileList
     forWithIndex_ (sortTunes tunes) \n tune ->
       when (n < maxScores) do
-        let
-          renderer = unsafePartial $ fromJust $ index state.vexRenderers n
-        _ <- H.liftEffect $ Score.renderFinalTune (vexConfig n) renderer tune
-        pure unit
+         renderTuneAtIndex state n tune
+
+renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m Unit 
+renderTuneAtIndex state rendererIndex tune = do
+  let
+    renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
+    config = vexConfig rendererIndex
+  mError <- H.liftEffect $ Score.renderFinalTune config renderer tune
+  if (mError == Just convasWidthExceded) then do
+    let  
+      config' = config { scale = reducedScale }
+    _ <- H.liftEffect $ Score.renderFinalTune config' renderer tune
+    pure unit
+  else 
+    pure unit
 
 clearScores :: ∀ m. MonadAff m => State -> m Unit
 clearScores state = do

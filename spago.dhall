@@ -8,6 +8,7 @@ You can edit this file as you like.
   , "abc-scores"
   , "aff"
   , "arrays"
+  , "console"
   , "css"
   , "dom-filereader"
   , "effect"

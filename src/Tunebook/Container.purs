@@ -20,6 +20,7 @@ import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Console (log)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
@@ -29,7 +30,7 @@ import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
 import Tunebook.Window (print)
 import VexFlow.Score (Renderer, clearCanvas, renderFinalTune, initialiseCanvas, resizeCanvas) as Score
-import VexFlow.Types (Config)
+import VexFlow.Types (Config, RenderingError)
 import Web.Event.Event as Event
 import Web.File.File as File
 import Web.File.FileList as FileList
@@ -308,23 +309,37 @@ handleFileUpload state input = do
     tunes <- collectTunes fileList
     forWithIndex_ (sortTunes tunes) \n tune ->
       when (n < maxScores) do
-         renderTuneAtIndex state n tune
+         mError <- renderTuneAtIndex state n tune         
+         _ <-  H.liftEffect $ logError mError tune
+         pure unit
+
+  where 
+    logError :: Maybe RenderingError -> AbcTune -> Effect Unit 
+    logError mError tune = 
+      let 
+        title = fromMaybe "untitled tune" (getTitle tune)
+      in 
+        case mError of 
+          Just e ->
+            log (title <> ": " <> e)
+          _ ->  
+            pure unit
 
 -- try to render the tune at the appropriate renderer index.
 -- if the canvas width is exceded, reduce the scale and have another go
-renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m Unit 
+renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Maybe RenderingError)
 renderTuneAtIndex state rendererIndex tune = do
   let
     renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
     config = vexConfig rendererIndex
-  mError <- H.liftEffect $ Score.renderFinalTune config renderer tune
-  if (mError == Just convasWidthExceded) then do
-    let  
-      config' = config { scale = reducedScale }
-    _ <- H.liftEffect $ Score.renderFinalTune config' renderer tune
-    pure unit
-  else 
-    pure unit
+  mError0 <- H.liftEffect $ Score.renderFinalTune config renderer tune
+  case mError0 of 
+    Just "Canvas width exceded" -> do
+      let  
+        config' = config { scale = reducedScale }
+      H.liftEffect $ Score.renderFinalTune config' renderer tune
+    _ ->
+      pure mError0
 
 clearScores :: ∀ m. MonadAff m => State -> m Unit
 clearScores state = do

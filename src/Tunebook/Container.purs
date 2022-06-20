@@ -310,6 +310,8 @@ handleFileUpload state input = do
       when (n < maxScores) do
          renderTuneAtIndex state n tune
 
+-- try to render the tune at the appropriate renderer index.
+-- if the canvas width is exceded, reduce the scale and have another go
 renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m Unit 
 renderTuneAtIndex state rendererIndex tune = do
   let

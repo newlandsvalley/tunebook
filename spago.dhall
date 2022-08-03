@@ -13,6 +13,7 @@ You can edit this file as you like.
   , "dom-filereader"
   , "effect"
   , "either"
+  , "ensemble-scores"
   , "foldable-traversable"
   , "halogen"
   , "halogen-css"

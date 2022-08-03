@@ -7,8 +7,9 @@ import Data.Abc (AbcTune)
 import Data.Abc.Metadata (getTitle)
 import Data.Abc.Optics (_headers, _Title)
 import Data.Abc.Parser (parse)
+import Abc.EnsembleScore.Renderer (renderPolyphonicVoices) as EnsembleScore
 import Data.Abc.Voice (getVoiceLabels, partitionVoices)
-import Data.Array (foldM, index, null, range, sortBy)
+import Data.Array (foldM, head, index, length, null, range, sortBy)
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
@@ -325,10 +326,21 @@ handleFileUpload state input = do
           _ ->  
             pure unit
 
--- try to render the tune at the appropriate renderer index.
--- if the canvas width is exceded, reduce the scale and have another go
 renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Maybe RenderingError)
 renderTuneAtIndex state rendererIndex tune = do
+  let 
+    voices = partitionVoices tune
+  if (length voices == 1) then     
+    renderMonophonicTuneAtIndex state rendererIndex tune        
+  else do 
+    let 
+      title = fromMaybe "untitled" $ getTitle tune
+    renderPolyphonicTuneAtIndex state rendererIndex title voices 
+
+-- try to render the tune at the appropriate renderer index.
+-- if the canvas width is exceded, reduce the scale and have another go
+renderMonophonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Maybe RenderingError)
+renderMonophonicTuneAtIndex state rendererIndex tune = do
   let
     renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
     config = vexConfig rendererIndex
@@ -340,6 +352,21 @@ renderTuneAtIndex state rendererIndex tune = do
       H.liftEffect $ Score.renderFinalTune config' renderer tune
     _ ->
       pure mError0
+
+renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> String -> Array AbcTune -> m (Maybe RenderingError)
+renderPolyphonicTuneAtIndex state rendererIndex title voices = do
+  let
+    renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
+    config = (vexConfig rendererIndex) { scale = reducedScale }
+  mError <- H.liftEffect $ EnsembleScore.renderPolyphonicVoices config renderer title voices
+  -- fallback to rendering just the first voice
+  case mError of 
+    Just _ -> do 
+      let
+        tune = unsafePartial $ fromJust $ head voices 
+      renderMonophonicTuneAtIndex state rendererIndex tune 
+    _ -> 
+      pure mError      
 
 clearScores :: ∀ m. MonadAff m => State -> m Unit
 clearScores state = do
@@ -372,24 +399,10 @@ collectTunes fileList =
       Left _ ->
         pure acc
       Right tune ->
-        -- monophonic
-        if null (getVoiceLabels tune) then
-          pure ([tune] <> acc)
-        -- polyphonic
-        else
-          pure ((establishVoices tune) <> acc)
+        pure ([tune] <> acc)
 
   fileArray :: Array File.File
   fileArray = FileList.items fileList
-
--- get all the voices represented as full tunes, but with a title that adds the voice label
-establishVoices :: AbcTune -> Array AbcTune
-establishVoices tune =
-  map amendTitle (partitionVoices tune)
-  where
-  title = fromMaybe "untitled" $ getTitle tune
-  amendTitle :: AbcTune -> AbcTune
-  amendTitle = over (_headers <<< traversed <<< _Title) (\t -> title <> ": " <> t)
 
 -- sort the tunes by title
 sortTunes :: Array AbcTune -> Array AbcTune
@@ -400,3 +413,6 @@ sortTunes tunes =
   compareTitles :: AbcTune -> AbcTune -> Ordering 
   compareTitles a b = 
     compare (getTitle a) (getTitle b)
+
+
+ -- set (_headers <<< traversed <<< _Title) ("voice " <> voiceName) tune

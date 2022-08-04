@@ -5,16 +5,15 @@ import Prelude
 import CSS.Display (display, displayNone)
 import Data.Abc (AbcTune)
 import Data.Abc.Metadata (getTitle)
-import Data.Abc.Optics (_headers, _Title)
 import Data.Abc.Parser (parse)
 import Abc.EnsembleScore.Renderer (renderPolyphonicVoices) as EnsembleScore
-import Data.Abc.Voice (getVoiceLabels, partitionVoices)
-import Data.Array (foldM, head, index, length, null, range, sortBy)
+import Data.Abc.Voice (partitionVoices)
+import Data.Array (foldM, index, range, sortBy)
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty (head, length) as NEA
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
-import Data.Lens.Setter (over)
-import Data.Lens.Traversal (traversed)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Traversable (traverse)
@@ -330,7 +329,7 @@ renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Maybe Re
 renderTuneAtIndex state rendererIndex tune = do
   let 
     voices = partitionVoices tune
-  if (length voices == 1) then     
+  if (NEA.length voices == 1) then     
     renderMonophonicTuneAtIndex state rendererIndex tune        
   else do 
     let 
@@ -353,7 +352,9 @@ renderMonophonicTuneAtIndex state rendererIndex tune = do
     _ ->
       pure mError0
 
-renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> String -> Array AbcTune -> m (Maybe RenderingError)
+-- try to render the poyphonic tune at the appropriate renderer index.
+-- if the rendering fails for any reason, revert to showing just the first voice
+renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> String -> NonEmptyArray AbcTune -> m (Maybe RenderingError)
 renderPolyphonicTuneAtIndex state rendererIndex title voices = do
   let
     renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
@@ -363,7 +364,7 @@ renderPolyphonicTuneAtIndex state rendererIndex title voices = do
   case mError of 
     Just _ -> do 
       let
-        tune = unsafePartial $ fromJust $ head voices 
+        tune = NEA.head voices 
       renderMonophonicTuneAtIndex state rendererIndex tune 
     _ -> 
       pure mError      
@@ -414,5 +415,3 @@ sortTunes tunes =
   compareTitles a b = 
     compare (getTitle a) (getTitle b)
 
-
- -- set (_headers <<< traversed <<< _Title) ("voice " <> voiceName) tune

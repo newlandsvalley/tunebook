@@ -4,8 +4,8 @@ import Prelude
 
 import CSS.Display (display, displayNone)
 import Data.Abc (AbcTune)
-import Data.Abc.Metadata (getTitle)
 import Data.Abc.Parser (parse)
+import Data.Abc.Utils (getTitle)
 import Abc.EnsembleScore.Renderer (renderPolyphonicVoices) as EnsembleScore
 import Data.Abc.Voice (partitionVoices)
 import Data.Array (foldM, index, range, sortBy)
@@ -31,6 +31,7 @@ import Partial.Unsafe (unsafePartial)
 import Tunebook.Window (print)
 import VexFlow.Score (Renderer, clearCanvas, renderFinalTune, initialiseCanvas, resizeCanvas) as Score
 import VexFlow.Types (Config, RenderingError)
+import VexFlow.Abc.TickableContext (defaultNoteSeparation)
 import Web.Event.Event as Event
 import Web.File.File as File
 import Web.File.FileList as FileList
@@ -86,6 +87,7 @@ vexConfig index =
   , scale: defaultScale
   , isSVG: true
   , titled: true
+  , noteSeparation: defaultNoteSeparation
   , showChordSymbols: false
   }
 

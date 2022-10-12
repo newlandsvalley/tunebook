@@ -105,41 +105,12 @@ in  upstream
 -------------------------------
 -}
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.0-20220527/packages.dhall
-        sha256:15dd8041480502850e4043ea2977ed22d6ab3fc24d565211acde6f8c5152a799
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20221012/packages.dhall
+        sha256:31c6db01ae45b911bf529c3ab731b02d114d14115938009b0c72a231589bfffd
 
 in  upstream
-  with abc-parser =
-    { dependencies =
-      [ "arrays"
-      , "bifunctors"
-      , "control"
-      , "either"
-      , "enums"
-      , "foldable-traversable"
-      , "identity"
-      , "integers"
-      , "lists"
-      , "maybe"
-      , "midi"
-      , "newtype"
-      , "ordered-collections"
-      , "partial"
-      , "prelude"
-      , "profunctor-lenses"
-      , "rationals"
-      , "string-parsers"
-      , "strings"
-      , "stringutils"
-      , "transformers"
-      , "tuples"
-      , "unfoldable"
-      ]
-    , repo = "https://github.com/newlandsvalley/purescript-abc-parser.git"
-    , version = "ps015"
-    }
   with abc-scores =
-    { dependencies =  
+    { dependencies =
       [ "abc-parser"
       , "arrays"
       , "console"
@@ -161,7 +132,7 @@ in  upstream
       , "unfoldable"
       ]
     , repo = "https://github.com/newlandsvalley/purescript-abc-scores.git"
-    , version = "ps015"
+    , version = "v0.6.0"
     }
   with halogen-components =
     { dependencies =
@@ -187,21 +158,15 @@ in  upstream
       ]
     , repo =
         "https://github.com/newlandsvalley/purescript-halogen-components.git"
-    , version = "ps015"
+    , version = "v0.6.0"
     }
   with dom-filereader =
-    { dependencies =
-      [ "aff"
-      , "arraybuffer-types"
-      , "web-html"
-      , "web-file"
-      ]
-    , repo =
-        "https://github.com/nwolverson/purescript-dom-filereader.git"
+    { dependencies = [ "aff", "arraybuffer-types", "web-html", "web-file" ]
+    , repo = "https://github.com/nwolverson/purescript-dom-filereader.git"
     , version = "v7.0.0"
     }
   with ensemble-scores =
-    { dependencies = 
+    { dependencies =
       [ "abc-parser"
       , "abc-scores"
       , "arrays"
@@ -219,25 +184,5 @@ in  upstream
       , "transformers"
       ]
     , repo = "https://github.com/newlandsvalley/ensemble-scores.git"
-    , version = "main"
+    , version = "v0.1.0"
     }
-  with arrays =
-    { dependencies =
-    [ "bifunctors"
-    , "control"
-    , "foldable-traversable"
-    , "maybe"
-    , "nonempty"
-    , "partial"
-    , "prelude"
-    , "safe-coerce"
-    , "st"
-    , "tailrec"
-    , "tuples"
-    , "unfoldable"
-    , "unsafe-coerce"
-    ]
-    , repo = "https://github.com/purescript/purescript-arrays.git"
-    , version = "v7.1.0"
-    }
-

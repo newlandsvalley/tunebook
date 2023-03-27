@@ -4,4 +4,4 @@ import Prelude (Unit)
 import Effect (Effect)
 
 foreign import print
-  :: Effect Unit
+  :: String -> Effect Unit

@@ -136,7 +136,8 @@ component =
         Nothing ->
           pure unit
     HandlePrint -> do
-      _ <- H.liftEffect print
+      state <- H.get 
+      _ <- H.liftEffect $ print $ fromMaybe "ABC Tunebook" state.title
       pure unit
     HandleTitleInput title -> do
       _ <- H.modify (\st -> st { title = Just title })
@@ -416,4 +417,3 @@ sortTunes tunes =
   compareTitles :: AbcTune -> AbcTune -> Ordering 
   compareTitles a b = 
     compare (getTitle a) (getTitle b)
-

@@ -5,8 +5,9 @@
     "example": "spago -x ./example.dhall bundle-app --main Example.Main --to example/dist/tunebook.js"
   },
   "devDependencies": {
-    "spago": "^0.20.9",
-    "purescript": "^0.15.4",
-    "purescript-psa": "^0.5.1"
+    "esbuild": "^0.14.54",
+    "purescript": "^0.15.8",
+    "purescript-psa": "^0.5.1",
+    "spago": "^0.20.9"
   }
 }

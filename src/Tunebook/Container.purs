@@ -2,15 +2,15 @@ module Tunebook.Container where
 
 import Prelude
 
+import Abc.EnsembleScore.Renderer (renderPolyphonicVoices) as EnsembleScore
 import CSS.Display (display, displayNone)
 import Data.Abc (AbcTune)
 import Data.Abc.Parser (parse)
 import Data.Abc.Utils (getTitle)
-import Abc.EnsembleScore.Renderer (renderPolyphonicVoices) as EnsembleScore
 import Data.Abc.Voice (partitionVoices)
 import Data.Array (foldM, index, range, sortBy)
 import Data.Array.NonEmpty (NonEmptyArray)
-import Data.Array.NonEmpty (head, length) as NEA
+import Data.Array.NonEmpty (length) as NEA
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
@@ -29,9 +29,9 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
 import Tunebook.Window (print)
-import VexFlow.Score (Renderer, clearCanvas, renderFinalTune, initialiseCanvas, resizeCanvas) as Score
-import VexFlow.Types (Config, RenderingError)
 import VexFlow.Abc.TickableContext (defaultNoteSeparation)
+import VexFlow.Score (Renderer, clearCanvas, renderFinalTune, initialiseCanvas, resizeCanvas) as Score
+import VexFlow.Types (Config, RenderingError, Titling(..))
 import Web.Event.Event as Event
 import Web.File.File as File
 import Web.File.FileList as FileList
@@ -86,7 +86,7 @@ vexConfig index =
   , height: 10
   , scale: defaultScale
   , isSVG: true
-  , titled: true
+  , titling: TitlePlusOrigin
   , noteSeparation: defaultNoteSeparation
   , showChordSymbols: false
   }
@@ -335,9 +335,7 @@ renderTuneAtIndex state rendererIndex tune = do
   if (NEA.length voices == 1) then     
     renderMonophonicTuneAtIndex state rendererIndex tune        
   else do 
-    let 
-      title = fromMaybe "untitled" $ getTitle tune
-    renderPolyphonicTuneAtIndex state rendererIndex title voices 
+    renderPolyphonicTuneAtIndex state rendererIndex tune voices 
 
 -- try to render the tune at the appropriate renderer index.
 -- if the canvas width is exceded, reduce the scale and have another go
@@ -357,17 +355,15 @@ renderMonophonicTuneAtIndex state rendererIndex tune = do
 
 -- try to render the poyphonic tune at the appropriate renderer index.
 -- if the rendering fails for any reason, revert to showing just the first voice
-renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> String -> NonEmptyArray AbcTune -> m (Maybe RenderingError)
-renderPolyphonicTuneAtIndex state rendererIndex title voices = do
+renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> NonEmptyArray AbcTune -> m (Maybe RenderingError)
+renderPolyphonicTuneAtIndex state rendererIndex tune voices = do
   let
     renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
     config = (vexConfig rendererIndex) { scale = reducedScale }
-  mError <- H.liftEffect $ EnsembleScore.renderPolyphonicVoices config renderer title voices
+  mError <- H.liftEffect $ EnsembleScore.renderPolyphonicVoices config renderer tune voices
   -- fallback to rendering just the first voice
   case mError of 
     Just _ -> do 
-      let
-        tune = NEA.head voices 
       renderMonophonicTuneAtIndex state rendererIndex tune 
     _ -> 
       pure mError      

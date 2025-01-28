@@ -2,12 +2,12 @@
   "private": true,
   "scripts": {
     "build": "spago build",
-    "example": "spago -x ./example.dhall bundle-app --main Example.Main --to example/dist/tunebook.js"
+    "example": "spago bundle --package example --outfile dist/tunebook.js --bundle-type app --platform browser"
   },
   "devDependencies": {
-    "esbuild": "^0.14.54",
-    "purescript": "^0.15.8",
+    "esbuild": "^0.24.2",
+    "purescript": "^0.15.15",
     "purescript-psa": "^0.5.1",
-    "spago": "^0.20.9"
+    "spago": "^0.93.42"
   }
 }

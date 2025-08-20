@@ -5,7 +5,7 @@ I wanted something that could produce ad-hoc scores for a bunch of tunes to play
 
 This needs to be run in the browser (and not from the command line) because the score production (abc-scores) only runs in the browser.
 
-Try it out [here](https://tunebook.org.uk:8606/).
+Try it out [here](https://tunebank.org.uk:8606/).
 
 Building
 --------

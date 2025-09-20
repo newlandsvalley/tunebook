@@ -86,6 +86,11 @@ label {
   list-style-type: none;
 }
 
+.invisibleScoreItem {
+  list-style-type: none;
+  height: 0px;
+}
+
 #book-title {
   width: 800px;
   text-align: center;

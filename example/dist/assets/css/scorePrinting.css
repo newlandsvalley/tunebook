@@ -10,6 +10,11 @@
     list-style-type: none;
     padding-bottom: 20px;
   }
+  .invisibleScoreItem {
+    list-style-type: none;
+    height: 0px;
+    visibility: hidden;
+  }
   #book-title {
     visibility: visible;
     width: 800px;

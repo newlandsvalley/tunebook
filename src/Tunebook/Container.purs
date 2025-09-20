@@ -8,11 +8,10 @@ import Data.Abc (AbcTune)
 import Data.Abc.Parser (parse)
 import Data.Abc.Utils (getTitle)
 import Data.Abc.Voice (partitionVoices)
-import Data.Array (foldM, index, range, sortBy)
+import Data.Array (foldM, index, length, range, sortBy)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty (length) as NEA
 import Data.Either (Either(..))
-import Data.Foldable (for_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
@@ -43,6 +42,7 @@ type State =
   { title :: Maybe String
   , vexRenderers :: Array Score.Renderer
   , vexRendered :: Boolean
+  , scoreCount :: Int
   }
 
 data Action
@@ -116,6 +116,7 @@ component =
     { title: Nothing
     , vexRenderers: []
     , vexRendered: false
+    , scoreCount: 0
     }
 
   handleAction ∷ Action → H.HalogenM State Action ChildSlots o m Unit
@@ -129,9 +130,9 @@ component =
         Just target -> do
           state <- H.get
           _ <- clearScores state
-          _ <- H.modify (\st -> st { vexRendered = true })
           -- this is the meat of getting all the scores
-          _ <- (handleFileUpload state) target
+          scoreCount <- (handleFileUpload state) target
+          _ <- H.modify (\st -> st { vexRendered = true, scoreCount = scoreCount })
           pure unit
         Nothing ->
           pure unit
@@ -186,7 +187,7 @@ component =
             [ renderPrintButton state ]
         , HH.div_
             [ renderBookTitle state
-            , HH.ul_ renderScores
+            , HH.ul_ (renderScores state.scoreCount)
             ]
         ]
     ]
@@ -283,20 +284,23 @@ renderPrintButton state =
 renderScores
   :: ∀ m
    . MonadAff m
-  => Array (H.ComponentHTML Action ChildSlots m)
-renderScores =
-  map renderScoreItem $ range 0 (maxScores - 1)
+  => Int 
+  -> Array (H.ComponentHTML Action ChildSlots m)
+renderScores scoreCount =
+  map (renderScoreItem scoreCount) $ range 0 (maxScores - 1)
 
-renderScoreItem :: ∀ i p. Int -> HH.HTML i p
-renderScoreItem idx =
+renderScoreItem :: ∀ i p. Int -> Int -> HH.HTML i p
+renderScoreItem scoreCount idx =
   HH.li
-    [ HP.class_ (H.ClassName "scoreItem") ]
+    [ HP.class_ (H.ClassName className) ]
     [ HH.div
         [ HP.id ("vexflow" <> show idx)
         , HP.class_ (H.ClassName "canvasDiv")
         ]
         []
     ]
+  where 
+    className = if (idx < scoreCount) then "scoreItem" else "invisibleScoreItem"
 
 noDisplayStyle :: ∀ j r. HP.IProp (style :: String | r) j
 noDisplayStyle =
@@ -305,16 +309,20 @@ noDisplayStyle =
 
 -- | process all the chosen files and, wherever possible, convert tha ABC 
 -- | to a final score and write to the appropriate canvas Div (by side effect)
-handleFileUpload :: ∀ m. MonadAff m => State -> HTMLInputElement -> m Unit
+handleFileUpload :: ∀ m. MonadAff m => State -> HTMLInputElement -> m Int
 handleFileUpload state input = do
   mFileList <- H.liftEffect $ HTMLInputElement.files input
-  for_ mFileList \fileList -> do
-    tunes <- collectTunes fileList
-    forWithIndex_ (sortTunes tunes) \n tune ->
-      when (n < maxScores) do
-         mError <- renderTuneAtIndex state n tune         
-         _ <-  H.liftEffect $ logError mError tune
-         pure unit
+  case mFileList of 
+    Just fileList -> do
+      tunes <- collectTunes fileList
+      forWithIndex_ (sortTunes tunes) \n tune ->
+        when (n < maxScores) do
+           mError <- renderTuneAtIndex state n tune         
+           _ <-  H.liftEffect $ logError mError tune
+           pure unit 
+      pure $ length tunes
+    _ -> 
+      pure 0
 
   where 
     logError :: Maybe RenderingError -> AbcTune -> Effect Unit 

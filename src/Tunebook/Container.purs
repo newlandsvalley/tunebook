@@ -132,10 +132,9 @@ component =
           _ <- clearScores state
           -- this is the meat of getting all the scores
           scoreCount <- (handleFileUpload state) target
-          _ <- H.modify (\st -> st { vexRendered = true, scoreCount = scoreCount })
-          pure unit
+          H.modify_ (\st -> st { vexRendered = true, scoreCount = scoreCount })
         Nothing ->
-          pure unit
+          H.modify_ (\st -> st { vexRendered = false, scoreCount = 0 })
     HandlePrint -> do
       state <- H.get 
       _ <- H.liftEffect $ print $ fromMaybe "ABC Tunebook" state.title
@@ -260,6 +259,12 @@ renderInputDir =
         ]
     ]
 
+  where  
+  noDisplayStyle :: ∀ j r. HP.IProp (style :: String | r) j
+  noDisplayStyle =
+    style do
+      display displayNone
+
 renderPrintButton
   :: ∀ m
    . MonadAff m
@@ -302,10 +307,6 @@ renderScoreItem scoreCount idx =
   where 
     className = if (idx < scoreCount) then "scoreItem" else "invisibleScoreItem"
 
-noDisplayStyle :: ∀ j r. HP.IProp (style :: String | r) j
-noDisplayStyle =
-  style do
-    display displayNone
 
 -- | process all the chosen files and, wherever possible, convert tha ABC 
 -- | to a final score and write to the appropriate canvas Div (by side effect)
@@ -317,26 +318,26 @@ handleFileUpload state input = do
       tunes <- collectTunes fileList
       forWithIndex_ (sortTunes tunes) \n tune ->
         when (n < maxScores) do
-           mError <- renderTuneAtIndex state n tune         
-           _ <-  H.liftEffect $ logError mError tune
+           eError <- renderTuneAtIndex state n tune         
+           _ <-  H.liftEffect $ logError eError tune
            pure unit 
       pure $ length tunes
     _ -> 
       pure 0
 
   where 
-    logError :: Maybe RenderingError -> AbcTune -> Effect Unit 
-    logError mError tune = 
+    logError :: Either RenderingError Config -> AbcTune -> Effect Unit 
+    logError eError tune = 
       let 
         title = fromMaybe "untitled tune" (getTitle tune)
       in 
-        case mError of 
-          Just e ->
+        case eError of 
+          Left e ->
             log (title <> ": " <> e)
           _ ->  
             pure unit
 
-renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Maybe RenderingError)
+renderTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Either RenderingError Config)
 renderTuneAtIndex state rendererIndex tune = do
   let 
     voices = partitionVoices tune
@@ -346,35 +347,35 @@ renderTuneAtIndex state rendererIndex tune = do
     renderPolyphonicTuneAtIndex state rendererIndex tune voices 
 
 -- try to render the tune at the appropriate renderer index.
--- if the canvas width is exceded, reduce the scale and have another go
-renderMonophonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Maybe RenderingError)
+-- if the canvas width is exceeded, reduce the scale and have another go
+renderMonophonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> m (Either RenderingError Config)
 renderMonophonicTuneAtIndex state rendererIndex tune = do
   let
     renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
     config = vexConfig rendererIndex
-  mError0 <- H.liftEffect $ Score.renderFinalTune config renderer tune
-  case mError0 of 
-    Just "Canvas width exceded" -> do
+  eError0 <- H.liftEffect $ Score.renderFinalTune config renderer tune
+  case eError0 of 
+    Left "Canvas width exceeded" -> do
       let  
         config' = config { scale = reducedScale }
       H.liftEffect $ Score.renderFinalTune config' renderer tune
     _ ->
-      pure mError0
+      pure eError0
 
 -- try to render the poyphonic tune at the appropriate renderer index.
 -- if the rendering fails for any reason, revert to showing just the first voice
-renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> NonEmptyArray AbcTune -> m (Maybe RenderingError)
+renderPolyphonicTuneAtIndex :: ∀ m. MonadAff m => State -> Int -> AbcTune -> NonEmptyArray AbcTune -> m (Either RenderingError Config)
 renderPolyphonicTuneAtIndex state rendererIndex tune voices = do
   let
     renderer = unsafePartial $ fromJust $ index state.vexRenderers rendererIndex
     config = (vexConfig rendererIndex) { scale = reducedScale }
-  mError <- H.liftEffect $ EnsembleScore.renderPolyphonicVoices config renderer tune voices
+  eError <- H.liftEffect $ EnsembleScore.renderPolyphonicVoices config renderer tune voices
   -- fallback to rendering just the first voice
-  case mError of 
-    Just _ -> do 
+  case eError of 
+    Left _ -> do 
       renderMonophonicTuneAtIndex state rendererIndex tune 
     _ -> 
-      pure mError      
+      pure $ Right config
 
 clearScores :: ∀ m. MonadAff m => State -> m Unit
 clearScores state = do
@@ -390,8 +391,7 @@ toFileArray :: FileList.FileList -> Array File.File
 toFileArray fileList =
   FileList.items fileList
 
--- collect all the tunes that parse, splitting any polyphonic tune 
--- into separate tunes for each voice
+-- collect all the tunes that parse
 collectTunes :: ∀ m. MonadAff m => FileList.FileList -> m (Array AbcTune)
 collectTunes fileList =
   liftAff $ foldM f [] fileArray

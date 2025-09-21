@@ -789,7 +789,7 @@
     "extra_packages": {
       "abc-scores": {
         "git": "https://github.com/newlandsvalley/purescript-abc-scores.git",
-        "ref": "10118be4551f899ce343fa05f0273b191dc10429",
+        "ref": "v0.6.7",
         "dependencies": [
           "abc-parser",
           "arrays",
@@ -814,7 +814,7 @@
       },
       "ensemble-scores": {
         "git": "https://github.com/newlandsvalley/ensemble-scores.git",
-        "ref": "632c620abae6172c76ca6e1fd963a32c41b86abe",
+        "ref": "v0.1.5",
         "dependencies": [
           "abc-parser",
           "abc-scores",
@@ -835,7 +835,7 @@
       },
       "halogen-components": {
         "git": "https://github.com/newlandsvalley/purescript-halogen-components.git",
-        "ref": "e0934e4da0afd7d813de1f31760888aa48b7c4df",
+        "ref": "v0.6.1",
         "dependencies": [
           "aff",
           "arrays",
@@ -895,7 +895,7 @@
     "abc-scores": {
       "type": "git",
       "url": "https://github.com/newlandsvalley/purescript-abc-scores.git",
-      "rev": "10118be4551f899ce343fa05f0273b191dc10429",
+      "rev": "49fa1fffbf512fa5f177e2032f9f02c165bc418c",
       "dependencies": [
         "abc-parser",
         "arrays",
@@ -1164,7 +1164,7 @@
     "ensemble-scores": {
       "type": "git",
       "url": "https://github.com/newlandsvalley/ensemble-scores.git",
-      "rev": "632c620abae6172c76ca6e1fd963a32c41b86abe",
+      "rev": "ce913f8d5d198578d56394b27ddceff9b0b2295b",
       "dependencies": [
         "abc-parser",
         "abc-scores",

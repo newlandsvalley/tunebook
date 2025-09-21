@@ -45,7 +45,7 @@ workspace:
         - tuples
         - unfoldable
       git: https://github.com/newlandsvalley/purescript-abc-scores.git
-      ref: 10118be4551f899ce343fa05f0273b191dc10429
+      ref: v0.6.7
     ensemble-scores:
       dependencies:
         - abc-parser
@@ -64,7 +64,7 @@ workspace:
         - strings
         - transformers
       git: https://github.com/newlandsvalley/ensemble-scores.git
-      ref: 632c620abae6172c76ca6e1fd963a32c41b86abe
+      ref: v0.1.5
     halogen-components:
       dependencies:
         - aff
@@ -87,6 +87,6 @@ workspace:
         - web-html
         - web-uievents
       git: https://github.com/newlandsvalley/purescript-halogen-components.git
-      ref: e0934e4da0afd7d813de1f31760888aa48b7c4df
+      ref: v0.6.1
   packageSet:
     registry: 66.5.0

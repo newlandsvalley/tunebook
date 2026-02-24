@@ -73,7 +73,7 @@ reducedScale = 0.6
 
 canvasWidth :: Int
 canvasWidth =
-  1000
+  1100
 
 emptyTune :: AbcTune
 emptyTune =
@@ -186,7 +186,8 @@ component =
             [ renderPrintButton state ]
         , HH.div_
             [ renderBookTitle state
-            , HH.ul_ (renderScores state.scoreCount)
+            , HH.ul [ HP.class_ (H.ClassName "scores")] 
+               (renderScores state.scoreCount)
             ]
         ]
     ]

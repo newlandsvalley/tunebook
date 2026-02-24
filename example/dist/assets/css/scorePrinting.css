@@ -2,6 +2,9 @@
   body * {
     visibility: hidden;
   }
+  .scores {
+    padding-left: 0;
+  }
   .scoreItem, .scoreItem * {
     visibility: visible;
   }

@@ -82,6 +82,10 @@ label {
   font-family: Georgia, serif;
 }
 
+.scores {
+  padding-left: 0;
+}
+
 .scoreItem {
   list-style-type: none;
 }
